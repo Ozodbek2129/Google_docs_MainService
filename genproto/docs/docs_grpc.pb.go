@@ -26,6 +26,8 @@ const (
 	DocsService_DeleteDocument_FullMethodName  = "/docs.DocsService/DeleteDocument"
 	DocsService_ShareDocument_FullMethodName   = "/docs.DocsService/ShareDocument"
 	DocsService_SearchDocument_FullMethodName  = "/docs.DocsService/SearchDocument"
+	DocsService_GetAllVersions_FullMethodName  = "/docs.DocsService/GetAllVersions"
+	DocsService_RestoreVersion_FullMethodName  = "/docs.DocsService/RestoreVersion"
 )
 
 // DocsServiceClient is the client API for DocsService service.
@@ -39,6 +41,8 @@ type DocsServiceClient interface {
 	DeleteDocument(ctx context.Context, in *DeleteDocumentReq, opts ...grpc.CallOption) (*DeleteDocumentRes, error)
 	ShareDocument(ctx context.Context, in *ShareDocumentReq, opts ...grpc.CallOption) (*ShareDocumentRes, error)
 	SearchDocument(ctx context.Context, in *SearchDocumentReq, opts ...grpc.CallOption) (*SearchDocumentRes, error)
+	GetAllVersions(ctx context.Context, in *GetAllVersionsReq, opts ...grpc.CallOption) (*GetAllVersionsRes, error)
+	RestoreVersion(ctx context.Context, in *RestoreVersionReq, opts ...grpc.CallOption) (*RestoreVersionRes, error)
 }
 
 type docsServiceClient struct {
@@ -119,6 +123,26 @@ func (c *docsServiceClient) SearchDocument(ctx context.Context, in *SearchDocume
 	return out, nil
 }
 
+func (c *docsServiceClient) GetAllVersions(ctx context.Context, in *GetAllVersionsReq, opts ...grpc.CallOption) (*GetAllVersionsRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllVersionsRes)
+	err := c.cc.Invoke(ctx, DocsService_GetAllVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *docsServiceClient) RestoreVersion(ctx context.Context, in *RestoreVersionReq, opts ...grpc.CallOption) (*RestoreVersionRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestoreVersionRes)
+	err := c.cc.Invoke(ctx, DocsService_RestoreVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DocsServiceServer is the server API for DocsService service.
 // All implementations must embed UnimplementedDocsServiceServer
 // for forward compatibility
@@ -130,6 +154,8 @@ type DocsServiceServer interface {
 	DeleteDocument(context.Context, *DeleteDocumentReq) (*DeleteDocumentRes, error)
 	ShareDocument(context.Context, *ShareDocumentReq) (*ShareDocumentRes, error)
 	SearchDocument(context.Context, *SearchDocumentReq) (*SearchDocumentRes, error)
+	GetAllVersions(context.Context, *GetAllVersionsReq) (*GetAllVersionsRes, error)
+	RestoreVersion(context.Context, *RestoreVersionReq) (*RestoreVersionRes, error)
 	mustEmbedUnimplementedDocsServiceServer()
 }
 
@@ -157,6 +183,12 @@ func (UnimplementedDocsServiceServer) ShareDocument(context.Context, *ShareDocum
 }
 func (UnimplementedDocsServiceServer) SearchDocument(context.Context, *SearchDocumentReq) (*SearchDocumentRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchDocument not implemented")
+}
+func (UnimplementedDocsServiceServer) GetAllVersions(context.Context, *GetAllVersionsReq) (*GetAllVersionsRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllVersions not implemented")
+}
+func (UnimplementedDocsServiceServer) RestoreVersion(context.Context, *RestoreVersionReq) (*RestoreVersionRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RestoreVersion not implemented")
 }
 func (UnimplementedDocsServiceServer) mustEmbedUnimplementedDocsServiceServer() {}
 
@@ -297,6 +329,42 @@ func _DocsService_SearchDocument_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DocsService_GetAllVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllVersionsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocsServiceServer).GetAllVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocsService_GetAllVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocsServiceServer).GetAllVersions(ctx, req.(*GetAllVersionsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DocsService_RestoreVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreVersionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocsServiceServer).RestoreVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocsService_RestoreVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocsServiceServer).RestoreVersion(ctx, req.(*RestoreVersionReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DocsService_ServiceDesc is the grpc.ServiceDesc for DocsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -331,6 +399,14 @@ var DocsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchDocument",
 			Handler:    _DocsService_SearchDocument_Handler,
+		},
+		{
+			MethodName: "GetAllVersions",
+			Handler:    _DocsService_GetAllVersions_Handler,
+		},
+		{
+			MethodName: "RestoreVersion",
+			Handler:    _DocsService_RestoreVersion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
