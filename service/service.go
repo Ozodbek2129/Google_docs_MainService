@@ -69,3 +69,4 @@ func (s *Service) DeleteDocument(ctx context.Context, req *pb.DeleteDocumentReq)
 	s.logger.Debug("DeleteDocument", "res", res)
 	return res, nil
 }
+
