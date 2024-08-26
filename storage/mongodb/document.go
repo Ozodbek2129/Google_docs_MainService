@@ -49,3 +49,80 @@ func (r *documentRepositoryImpl) CreateDocument(ctx context.Context, req *pb.Cre
 
 	return &pb.CreateDocumentRes{Message: "Document created successfully"}, nil
 }
+
+func (r *documentRepositoryImpl) GetDocument(ctx context.Context, req *pb.GetDocumentReq) (*pb.GetDocumentRes, error) {
+	coll := r.coll.Collection("docs")
+
+	var doc pb.GetDocumentRes
+	err := coll.FindOne(ctx, bson.M{"_id": req.Title}).Decode(&doc)
+	if err != nil {
+		return nil, err
+	}
+	err = coll.FindOne(ctx, bson.M{"_id": req.AuthorId}).Decode(&doc)
+
+	if err != nil {
+		return nil, err
+	}
+	return &doc, nil
+}
+
+
+func (r *documentRepositoryImpl) GetAllDocuments(ctx context.Context, req *pb.GetAllDocumentsReq) (*pb.GetAllDocumentsRes, error) {
+	coll := r.coll.Collection("docs")
+
+	filtr := bson.M{}
+	if req.Email != "" {
+		filtr["authorId"] = req.Email
+	}
+
+	if req.Limit != 0 {
+		filtr["limit"] = req.Limit
+	}
+	if req.Page != 0 {
+		filtr["page"] = req.Page
+	}
+
+	cursor, err := coll.Find(ctx, filtr)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var docs []*pb.GetDocumentRes
+	for cursor.Next(ctx) {
+		var doc pb.GetDocumentRes
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		docs = append(docs, &doc)
+	}
+	return &pb.GetAllDocumentsRes{Documents: docs}, nil
+}
+
+func (r *documentRepositoryImpl) UpdateDocument(ctx context.Context, req *pb.UpdateDocumentReq) (*pb.UpdateDocumentRes, error) {
+	coll := r.coll.Collection("docs")
+
+	_, err := coll.UpdateOne(ctx, bson.M{"_id": req.Title}, bson.M{"$set": bson.M{
+		"title": req.Title,
+		"content": req.Content,
+		"tags": req.Tags,
+		"category": req.Category,
+		"updatedAt": time.Now(),
+	}})
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UpdateDocumentRes{Message: "Document updated successfully"}, nil
+}
+
+
+func (r *documentRepositoryImpl) DeleteDocument(ctx context.Context, req *pb.DeleteDocumentReq) (*pb.DeleteDocumentRes, error) {
+	coll := r.coll.Collection("docs")
+
+	_, err := coll.UpdateOne(ctx, bson.M{"_id": req.Title}, bson.M{"$set": bson.M{
+		"deletedAt": time.Now(),
+	}})
+	if err != nil {
+		return nil, err
+	}
+	return &pb.DeleteDocumentRes{Message: "Document deleted successfully"}, nil
+}
