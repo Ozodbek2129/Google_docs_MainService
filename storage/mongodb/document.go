@@ -19,11 +19,11 @@ type DocumentRepository interface {
 }
 
 type documentRepositoryImpl struct {
-    coll *mongo.Database
+	coll *mongo.Database
 }
 
 func NewDocumentRepository(db *mongo.Database) DocumentRepository {
-    return &documentRepositoryImpl{coll: db}
+	return &documentRepositoryImpl{coll: db}
 }
 
 func (r *documentRepositoryImpl) CreateDocument(ctx context.Context, req *pb.CreateDocumentReq) (*pb.CreateDocumentRes, error) {
@@ -31,21 +31,21 @@ func (r *documentRepositoryImpl) CreateDocument(ctx context.Context, req *pb.Cre
 	id := uuid.New().String()
 
 	_, err := coll.InsertOne(ctx, bson.M{
-		"_id":   id,
-        "title": req.Title,
-        "content": req.Content,
-		"tags":     req.Tags,
-        "category": req.Category,
-        "authorId":   req.AuthorId,
+		"_id":           id,
+		"title":         req.Title,
+		"content":       req.Content,
+		"tags":          req.Tags,
+		"category":      req.Category,
+		"authorId":      req.AuthorId,
 		"collobratorId": "",
-		"createdAt": time.Now(),
-		"updatedAt": time.Now(),
-		"deletedAt": 0,
+		"createdAt":     time.Now(),
+		"updatedAt":     time.Now(),
+		"deletedAt":     0,
 	})
 
-	if err!= nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
 	return &pb.CreateDocumentRes{Message: "Document created successfully"}, nil
 }
@@ -65,7 +65,6 @@ func (r *documentRepositoryImpl) SearchDocument(ctx context.Context, req *pb.Sea
 	}
 	return &doc, nil
 }
-
 
 func (r *documentRepositoryImpl) GetAllDocuments(ctx context.Context, req *pb.GetAllDocumentsReq) (*pb.GetAllDocumentsRes, error) {
 	coll := r.coll.Collection("docs")
@@ -99,43 +98,41 @@ func (r *documentRepositoryImpl) GetAllDocuments(ctx context.Context, req *pb.Ge
 }
 
 func (r *documentRepositoryImpl) UpdateDocument(ctx context.Context, req *pb.UpdateDocumentReq) (*pb.UpdateDocumentRes, error) {
-    coll := r.coll.Collection("docs")
+	coll := r.coll.Collection("docs")
 
-    authorId := req.AuthorId
+	authorId := req.AuthorId
 
+	update := bson.D{{Key: "$set", Value: bson.D{
+		{Key: "title", Value: req.Title},
+		{Key: "content", Value: req.Content},
+		{Key: "tags", Value: req.Tags},
+		{Key: "category", Value: req.Category},
+		{Key: "updatedAt", Value: time.Now()},
+	}}}
 
-    update := bson.D{{Key: "$set", Value: bson.D{
-        {Key: "title", Value: req.Title},
-        {Key: "content", Value: req.Content},
-        {Key: "tags", Value: req.Tags},
-        {Key: "category", Value: req.Category},
-        {Key: "updatedAt", Value: time.Now()},
-    }}}
+	filter := bson.D{{Key: "authorId", Value: authorId}, {Key: "deletedAt", Value: 0}}
 
-    filter := bson.D{{Key: "authorId", Value: authorId}, {Key: "deletedAt", Value: 0}}
+	_, err := coll.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, err
+	}
 
-    _, err := coll.UpdateOne(ctx, filter, update)
-    if err != nil {
-        return nil, err
-    }
-
-    return &pb.UpdateDocumentRes{Message: "Document updated successfully"}, nil
+	return &pb.UpdateDocumentRes{Message: "Document updated successfully"}, nil
 }
-
 
 func (r *documentRepositoryImpl) DeleteDocument(ctx context.Context, req *pb.DeleteDocumentReq) (*pb.DeleteDocumentRes, error) {
 	coll := r.coll.Collection("docs")
 
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "deletedAt", Value: time.Now().Unix()}}}}
 
-    filter := bson.D{{Key: "authorId", Value: req.AuthorId}, {Key: "deletedAt", Value: 0}}
+	filter := bson.D{{Key: "authorId", Value: req.AuthorId}, {Key: "deletedAt", Value: 0}}
 
 	_, err := coll.UpdateOne(ctx, filter, update)
-	if err!= nil {
-        return &pb.DeleteDocumentRes{
+	if err != nil {
+		return &pb.DeleteDocumentRes{
 			Message: "Document did not deleted",
 		}, err
-    }
+	}
 
 	return &pb.DeleteDocumentRes{Message: "Document deleted successfully"}, nil
 }
