@@ -2,104 +2,143 @@ package mongodb
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	pb "mainService/genproto/docs"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// MockMongoCollection is a mock type for the Mongo Collection
-type MockMongoCollection struct {
-	mock.Mock
+// TestConnectMongoDB initializes a connection to MongoDB.
+func TestConnectMongoDB(t *testing.T) {
+	db, err := ConnectMongoDb() // Ensure this function connects to your test database
+	assert.NoError(t, err)
+	assert.NotNil(t, db)
 }
 
-// Mock functions for collection methods
-func (m *MockMongoCollection) InsertOne(ctx context.Context, document interface{},
-	opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
-	args := m.Called(ctx, document)
-	return args.Get(0).(*mongo.InsertOneResult), args.Error(1)
-}
-
-func (m *MockMongoCollection) FindOne(ctx context.Context, filter interface{},
-	opts ...*options.FindOneOptions) *mongo.SingleResult {
-	args := m.Called(ctx, filter)
-	return args.Get(0).(*mongo.SingleResult)
-}
-
-// MockMongoDatabase is a mock type for the Mongo Database
-type MockMongoDatabase struct {
-	mock.Mock
-	*mongo.Database
-}
-
-func (m *MockMongoDatabase) Collection(name string, opts ...*options.CollectionOptions) *MockMongoCollection {
-	args := m.Called(name)
-	return args.Get(0).(*MockMongoCollection)
-}
-
+// TestCreateDocument tests the CreateDocument function.
 func TestCreateDocument(t *testing.T) {
-	mockDB := new(MockMongoDatabase)
-	mockCollection := new(MockMongoCollection)
+	db, err := ConnectMongoDb()
+	assert.NoError(t, err)
+	defer db.Client().Disconnect(context.Background())
 
-	// Setting expectations
-	mockDB.On("Collection", "docs").Return(mockCollection)
-	mockCollection.On("FindOne", mock.Anything, mock.Anything).
-		Return(&mongo.SingleResult{}) // Mock FindOne return value
-	mockCollection.On("InsertOne", mock.Anything, mock.Anything).
-		Return(&mongo.InsertOneResult{InsertedID: "mockID"}, nil) // Mock InsertOne return value
-		
-	repo := NewDocumentRepository(mockDB.Database)
+	repo := NewDocumentRepository(db)
 	req := &pb.CreateDocumentReq{
 		Title:    "Test Document",
-		AuthorId: "author123",
+		AuthorId: "test_author",
 	}
 
-	// Call CreateDocument
 	res, err := repo.CreateDocument(context.Background(), req)
-
-	// Assert no error occurred
 	assert.NoError(t, err)
-	assert.Equal(t, "Test Document", res.Title)
-	assert.Equal(t, "author123", res.AuthorId)
-
-	// Assert expectations
-	mockDB.AssertExpectations(t)
-	mockCollection.AssertExpectations(t)
-
+	assert.Equal(t, req.Title, res.Title)
+	assert.Equal(t, req.AuthorId, res.AuthorId)
 }
 
-func TestCreateDocument_DuplicateTitle(t *testing.T) {
-	mockDB := new(MockMongoDatabase)
-	mockCollection := new(MockMongoCollection)
+// TestSearchDocument tests the SearchDocument function.
+func TestSearchDocument(t *testing.T) {
+	db, err := ConnectMongoDb()
+	assert.NoError(t, err)
+	defer db.Client().Disconnect(context.Background())
 
-	// Setting expectations
-	mockDB.On("Collection", "docs").Return(mockCollection)
-	mockCollection.On("FindOne", mock.Anything, mock.Anything).
-		Return(&mongo.SingleResult{}) // Mock FindOne return value
-
-	mockCollection.On("InsertOne", mock.Anything, mock.Anything).
-		Return(&mongo.InsertOneResult{}, mongo.IsDuplicateKeyError(errors.New("duplicate key error")))
-
-	repo := NewDocumentRepository(mockDB.Database)
-
-	req := &pb.CreateDocumentReq{
-		Title:    "Duplicate Title",
-		AuthorId: "author123",
+	repo := NewDocumentRepository(db)
+	createReq := &pb.CreateDocumentReq{
+		Title:    "Search Test Document",
+		AuthorId: "test_author",
 	}
+	_, _ = repo.CreateDocument(context.Background(), createReq)
 
-	// Call CreateDocument
-	_, err := repo.CreateDocument(context.Background(), req)
+	searchReq := &pb.SearchDocumentReq{
+		DocsId:   "test_docs_id",
+		Title:    createReq.Title,
+		AuthorId: createReq.AuthorId,
+	}
+	res, err := repo.SearchDocument(context.Background(), searchReq)
+	assert.NoError(t, err)
+	assert.Greater(t, len(res.Documents), 0)
+}
 
-	// Assert error occurred and check the error message
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "title 'Duplicate Title' is already taken")
+// TestGetAllDocuments tests the GetAllDocuments function.
+func TestGetAllDocuments(t *testing.T) {
+	db, err := ConnectMongoDb()
+	assert.NoError(t, err)
+	defer db.Client().Disconnect(context.Background())
 
-	// Assert expectations
-	mockDB.AssertExpectations(t)
-	mockCollection.AssertExpectations(t)
+	repo := NewDocumentRepository(db)
+	req := &pb.GetAllDocumentsReq{
+		DocsId:   "test_docs_id",
+		AuthorId: "test_author",
+	}
+	res, err := repo.GetAllDocuments(context.Background(), req)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, res.Documents)
+}
+
+// TestUpdateDocument tests the UpdateDocument function.
+func TestUpdateDocument(t *testing.T) {
+	db, err := ConnectMongoDb()
+	assert.NoError(t, err)
+	defer db.Client().Disconnect(context.Background())
+
+	repo := NewDocumentRepository(db)
+	createReq := &pb.CreateDocumentReq{
+		Title:    "Update Test Document",
+		AuthorId: "test_author",
+	}
+	createRes, _ := repo.CreateDocument(context.Background(), createReq)
+
+	updateReq := &pb.UpdateDocumentReq{
+		Title:    "Updated Document Title",
+		Content:  "Updated Content",
+		DocsId:   createRes.Title,
+		AuthorId: createRes.AuthorId,
+	}
+	updateRes, err := repo.UpdateDocument(context.Background(), updateReq)
+	assert.NoError(t, err)
+	assert.Contains(t, updateRes.Message, "Document updated successfully")
+}
+
+// TestDeleteDocument tests the DeleteDocument function.
+func TestDeleteDocument(t *testing.T) {
+	db, err := ConnectMongoDb()
+	assert.NoError(t, err)
+	defer db.Client().Disconnect(context.Background())
+
+	repo := NewDocumentRepository(db)
+	createReq := &pb.CreateDocumentReq{
+		Title:    "Delete Test Document",
+		AuthorId: "test_author",
+	}
+	createRes, _ := repo.CreateDocument(context.Background(), createReq)
+
+	deleteReq := &pb.DeleteDocumentReq{
+		Title:    createRes.Title,
+		AuthorId: createRes.AuthorId,
+	}
+	deleteRes, err := repo.DeleteDocument(context.Background(), deleteReq)
+	assert.NoError(t, err)
+	assert.Equal(t, "Document deleted successfully", deleteRes.Message)
+}
+
+// TestShareDocument tests the ShareDocument function.
+func TestShareDocument(t *testing.T) {
+	db, err := ConnectMongoDb()
+	assert.NoError(t, err)
+	defer db.Client().Disconnect(context.Background())
+
+	repo := NewDocumentRepository(db)
+	createReq := &pb.CreateDocumentReq{
+		Title:    "Share Test Document",
+		AuthorId: "test_author",
+	}
+	createRes, _ := repo.CreateDocument(context.Background(), createReq)
+
+	shareReq := &pb.ShareDocumentReq{
+		Title:       createRes.Title,
+		Id:          createRes.Title,
+		UserId:      "collaborator_id",
+		Permissions: "read",
+	}
+	shareRes, err := repo.ShareDocument(context.Background(), shareReq)
+	assert.NoError(t, err)
+	assert.Equal(t, "Document shared successfully!", shareRes.Message)
 }
