@@ -174,7 +174,10 @@ func (r *documentRepositoryImpl) DeleteDocument(ctx context.Context, req *pb.Del
 
 func (r *documentRepositoryImpl) ShareDocument(ctx context.Context, req *pb.ShareDocumentReq) (*pb.ShareDocumentRes, error) {
 	coll := r.coll.Collection("docs")
-	filter := bson.M{"title": req.Title}
+	filter := bson.M{
+		"title": req.Title,
+		"_id": req.Id,
+	}
 
 	var existingDoc bson.M
 	err := coll.FindOne(ctx, filter).Decode(&existingDoc)

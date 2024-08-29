@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	pb "mainService/genproto/docs"
 	"time"
 
@@ -25,17 +26,32 @@ func NewDocumentVersionRepository(db *mongo.Database) DocumentVersionRepository 
 func (r *documentVersionRepositoryImpl) GetAllVersions(ctx context.Context, req *pb.GetAllVersionsReq) (*pb.GetAllDocumentsRes, error) {
 	coll := r.coll.Collection("docs")
 
-	var doc []*pb.GetDocumentRes
-	err := coll.FindOne(ctx, bson.M{"_id": req.Title}).Decode(&doc)
-	if err != nil {
-		return nil, err
-	}
-	err = coll.FindOne(ctx, bson.M{"_id": req.AuthorId}).Decode(&doc)
+	var docs []*pb.GetDocumentRes
 
-	if err != nil {
-		return nil, err
+	filter := bson.M{
+		"authorId": req.AuthorId,
+		"title":    req.Title,
 	}
-	return &pb.GetAllDocumentsRes{Documents: doc}, nil
+
+	cursor, err := coll.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("error while finding documents: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var doc pb.GetDocumentRes
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("error while decoding document: %v", err)
+		}
+		docs = append(docs, &doc)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %v", err)
+	}
+	
+	return &pb.GetAllDocumentsRes{Documents: docs}, nil
 }
 
 func (r *documentVersionRepositoryImpl) RestoreVersion(ctx context.Context, req *pb.RestoreVersionReq) (*pb.RestoreVersionRes, error) {
