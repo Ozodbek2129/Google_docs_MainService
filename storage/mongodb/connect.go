@@ -3,14 +3,15 @@ package mongodb
 import (
 	"context"
 	"log"
+	"mainService/config"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func ConnectMongoDb() (*mongo.Database, error) {
-	client, err := mongo.Connect(context.Background(), options.Client().
-        ApplyURI("mongodb://localhost:27017").SetAuth(options.Credential{Username: "root", Password: "example"}))
+	cfg := config.Load()
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.MongoURI))
 	if err != nil {
 		log.Println(err)
         return nil, err
@@ -23,5 +24,5 @@ func ConnectMongoDb() (*mongo.Database, error) {
         return nil, err
     }
 
-	return client.Database("google_docs"), nil
+	return client.Database(cfg.MongoDBName), nil
 } 
