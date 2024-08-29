@@ -6,6 +6,7 @@ import (
 	pb "mainService/genproto/docs"
 	"time"
 
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -26,31 +27,68 @@ func NewDocumentVersionRepository(db *mongo.Database) DocumentVersionRepository 
 func (r *documentVersionRepositoryImpl) GetAllVersions(ctx context.Context, req *pb.GetAllVersionsReq) (*pb.GetAllDocumentsRes, error) {
 	coll := r.coll.Collection("docs")
 
-	var docs []*pb.GetDocumentRes
+	if req.AuthorId == "" {
+		return nil, errors.New("Author is required")
+	}
+	if req.Title == "" {
+		return nil, errors.New("Title is required")
+	}
 
 	filter := bson.M{
 		"authorId": req.AuthorId,
 		"title":    req.Title,
 	}
 
-	cursor, err := coll.Find(ctx, filter)
+	cursor, err := coll.Find(ctx, filter, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error while finding documents: %v", err)
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
+	var docs []*pb.GetDocumentRes
+	var authorFound bool
+
 	for cursor.Next(ctx) {
-		var doc pb.GetDocumentRes
+		var doc bson.M
 		if err := cursor.Decode(&doc); err != nil {
-			return nil, fmt.Errorf("error while decoding document: %v", err)
+			return nil, err
 		}
-		docs = append(docs, &doc)
+
+		authorId, ok := doc["authorId"].(string)
+		if !ok {
+			continue
+		}
+
+		if authorId == req.AuthorId {
+			result := &pb.GetDocumentRes{
+				Title:    doc["title"].(string),
+				Content:  doc["content"].(string),
+				DocsId:   doc["docsId"].(string),
+				AuthorId: doc["authorId"].(string),
+				Version:  doc["version"].(int32),
+			}
+			docs = append(docs, result)
+			authorFound = true
+		} else {
+			collaboratorIds, ok := doc["collaboratorId"].([]string)
+			if ok && contains(collaboratorIds, req.AuthorId) {
+				result := &pb.GetDocumentRes{
+					Title:    doc["title"].(string),
+					Content:  doc["content"].(string),
+					DocsId:   doc["docsId"].(string),
+					AuthorId: doc["authorId"].(string),
+					Version:  doc["version"].(int32),
+				}
+				docs = append(docs, result)
+				authorFound = true
+			}
+		}
 	}
 
-	if err := cursor.Err(); err != nil {
-		return nil, fmt.Errorf("cursor error: %v", err)
+	if !authorFound {
+		return nil, fmt.Errorf("no documents found '%s' with the given authorId or in collaboratorId", req.AuthorId)
 	}
-	
+
 	return &pb.GetAllDocumentsRes{Documents: docs}, nil
 }
 
@@ -59,14 +97,36 @@ func (r *documentVersionRepositoryImpl) RestoreVersion(ctx context.Context, req 
 
 	authorId := req.AuthorId
 
+	if authorId == "" {
+		return nil, errors.New("Author is required")
+	}
+	if req.Title == "" {
+		return nil, errors.New("Title is required")
+	}
+	if req.Version == "" {
+        return nil, errors.New("Version is required")
+    }
+
+	filter := bson.D{
+		{Key: "authorId", Value: authorId},
+		{Key: "title", Value: req.Title},
+		{Key: "version", Value: req.Version},
+		{Key: "docsId", Value: req.Id},
+	}
+
+	var doc pb.GetDocumentRes
+	err := coll.FindOne(ctx, filter).Decode(&doc)
+	if err != nil {
+		return nil, fmt.Errorf("document with docsId '%s' and title '%s' not found", req.Id, req.Title)
+	}
+
 	update := bson.D{{Key: "$set", Value: bson.D{
 		{Key: "title", Value: req.Title},
+		{Key: "content", Value: doc.Content},
 		{Key: "updatedAt", Value: time.Now()},
 	}}}
 
-	filter := bson.D{{Key: "authorId", Value: authorId}, {Key: "deletedAt", Value: 0}}
-
-	_, err := coll.UpdateOne(ctx, filter, update)
+	_, err = coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return nil, err
 	}
