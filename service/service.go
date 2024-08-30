@@ -11,12 +11,14 @@ type Service struct {
 	pb.UnimplementedDocsServiceServer
 	logger *slog.Logger
 	repo   mongodb.DocumentRepository
+	version mongodb.DocumentVersionRepository
 }
 
-func NewService(logger *slog.Logger, repo mongodb.DocumentRepository) *Service {
+func NewService(logger *slog.Logger, repo mongodb.DocumentRepository,version mongodb.DocumentVersionRepository) *Service {
 	return &Service{
 		logger: logger,
 		repo:   repo,
+		version: version,
 	}
 }
 
@@ -73,4 +75,35 @@ func (s *Service) DeleteDocument(ctx context.Context, req *pb.DeleteDocumentReq)
 	}
 	s.logger.Debug("DeleteDocument", "res", res)
 	return res, nil
+}
+
+func (s *Service) ShareDocument(ctx context.Context,req *pb.ShareDocumentReq) (*pb.ShareDocumentRes,error){
+	res,err:=s.repo.ShareDocument(ctx,req)
+	if err != nil {
+		s.logger.Error("ShareDocument", "err", err)
+		return nil, err
+	}
+	return res, nil
+}
+
+func (s *Service) GetAllVersions(ctx context.Context,req *pb.GetAllVersionsReq) (*pb.GetAllVersionsRes,error){
+	res,err:=s.version.GetAllVersions(ctx,req)
+	if err!=nil{
+		s.logger.Error("GetAllVersions", "err", err)
+		return nil, err
+	}
+	return &pb.GetAllVersionsRes{
+		DocumentsVersion: res.Documents,
+	},nil
+}
+
+func (s *Service) RestoreVersion(ctx context.Context,req *pb.RestoreVersionReq)(*pb.RestoreVersionRes,error){
+	res,err:=s.version.RestoreVersion(ctx,req)
+	if err!=nil{
+		s.logger.Error("RestoreVersion", "err", err)
+		return nil, err
+	}
+	return &pb.RestoreVersionRes{
+		Message: res.Message,
+	},nil
 }

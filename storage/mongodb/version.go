@@ -103,7 +103,7 @@ func (r *documentVersionRepositoryImpl) RestoreVersion(ctx context.Context, req 
 	if req.Title == "" {
 		return nil, errors.New("Title is required")
 	}
-	if req.Version == "" {
+	if req.Version == 0 {
         return nil, errors.New("Version is required")
     }
 
