@@ -1,0 +1,30 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example 
+    volumes:
+      - db:/data/mongosh
+    networks:
+      - google
+
+  main_service:
+    container_name: docs
+    build: .
+    ports:
+      - "3456:3456"
+    networks:
+     - google
+    depends_on:
+      - mongodb
+
+networks:
+  google:
+    external: true
+
+volumes:
+  db:
