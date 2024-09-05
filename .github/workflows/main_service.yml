@@ -27,19 +27,31 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            # Check if the directory exists
+            # Check if the Google_docs directory exists
             if [ -d "Google_docs" ]; then
-              echo "Directory exists. Pulling latest changes..."
-              cd Google_docs/google_docs_MainService
-              git pull origin main
-            else
-              echo "Directory does not exist. Cloning repository..."
+              echo "Google_docs directory exists."
               cd Google_docs
-              git clone git@github.com:Ozodbek2129/Google_docs_MainService.git
+              # Check if the google_docs_MainService directory exists
+              if [ -d "google_docs_MainService" ]; then
+                echo "Repository exists. Pulling latest changes..."
+                cd google_docs_MainService
+                git pull origin main
+              else
+                echo "Repository does not exist. Cloning repository..."
+                git clone git@github.com:Ozodbek2129/Google_docs_MainService.git google_docs_MainService
+                cd google_docs_MainService
+              fi
+            else
+              echo "Google_docs directory does not exist. Creating directory..."
+              mkdir Google_docs
+              cd Google_docs
+              echo "Cloning repository..."
+              git clone git@github.com:Ozodbek2129/Google_docs_MainService.git google_docs_MainService
+              cd google_docs_MainService
             fi
 
             # Stop and remove existing Docker containers
-            docker compose down
+            docker compose down || true
 
             # Build and start Docker containers
             docker compose up -d --build
