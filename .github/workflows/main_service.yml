@@ -46,7 +46,7 @@ jobs:
               mkdir Google_docs
               cd Google_docs
               echo "Cloning repository..."
-              git clone git@github.com:Ozodbek2129/Google_docs_MainService.git google_docs_MainService
+              git clone git@github.com:Ozodbek2129/Google_docs_MainService.git
               cd google_docs_MainService
             fi
 
