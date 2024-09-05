@@ -31,7 +31,7 @@ jobs:
             if [ -d "Google_docs" ]; then
               echo "Directory exists. Pulling latest changes..."
               cd Google_docs/google_docs_MainService
-              git pull
+              git pull origin main
             else
               echo "Directory does not exist. Cloning repository..."
               mkdir Google_docs
@@ -44,4 +44,3 @@ jobs:
 
             # Build and start Docker containers
             docker compose up -d --build
-            
