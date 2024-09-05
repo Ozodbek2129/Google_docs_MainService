@@ -1,0 +1,46 @@
+name: API
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # Check if the directory exists
+            if [ -d "Google_docs" ]; then
+              echo "Directory exists. Pulling latest changes..."
+              cd Google_docs/google_docs_MainService
+              git pull
+            else
+              echo "Directory does not exist. Cloning repository..."
+              mkdir Google_docs
+              cd Google_docs
+              git clone git@github.com:Ozodbek2129/Google_docs_MainService.git
+            fi
+
+            # Stop and remove existing Docker containers
+            docker compose down
+
+            # Build and start Docker containers
+            docker compose up -d --build
