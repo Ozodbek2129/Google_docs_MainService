@@ -11,7 +11,10 @@ import (
 
 func ConnectMongoDb() (*mongo.Database, error) {
 	cfg := config.Load()
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.MongoURI))
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.MongoURI).SetAuth(options.Credential{
+		Username: "root",
+		Password: "example",
+	}))
 	if err != nil {
 		log.Println(err)
         return nil, err
