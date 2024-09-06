@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	pb "mainService/genproto/docs"
+	pb "mainService/genproto/doccs"
 	"time"
 
 	"github.com/google/uuid"

@@ -1,0 +1,2 @@
+time=2024-09-06T19:37:15.007+05:00 level=DEBUG msg=CreateDocument req="title:\"resume\" author_id:\"87825d0b-9ed8-4ed8-9a18-0585a64b7dda\""
+time=2024-09-06T19:37:15.049+05:00 level=DEBUG msg=CreateDocument res="title:\"resume\" author_id:\"87825d0b-9ed8-4ed8-9a18-0585a64b7dda\""

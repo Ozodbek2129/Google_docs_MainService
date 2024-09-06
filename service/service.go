@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"log/slog"
-	pb "mainService/genproto/docs"
+	pb "mainService/genproto/doccs"
 	"mainService/storage/mongodb"
 )
 

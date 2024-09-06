@@ -3,7 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	pb "mainService/genproto/docs"
+	pb "mainService/genproto/doccs"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb/errors"

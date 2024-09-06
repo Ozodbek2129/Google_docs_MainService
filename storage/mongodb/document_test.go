@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	pb "mainService/genproto/docs"
+	pb "mainService/genproto/doccs"
 
 	"github.com/stretchr/testify/assert"
 )
