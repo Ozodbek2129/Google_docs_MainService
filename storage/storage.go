@@ -1,7 +1,7 @@
 package storage
 
 import (
-	pb "mainService/genproto/docs"
+	pb "mainService/genproto/doccs"
 )
 
 type IStorage interface {

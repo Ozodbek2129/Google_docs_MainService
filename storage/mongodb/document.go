@@ -65,7 +65,7 @@ func (r *documentRepositoryImpl) CreateDocument(ctx context.Context, req *pb.Cre
 		return nil, err
 	}
 
-	return &pb.CreateDocumentRes{Title: req.Title, AuthorId: req.AuthorId}, nil
+	return &pb.CreateDocumentRes{Title: req.Title, AuthorId: req.AuthorId,DocsId: docsId}, nil
 }
 
 
